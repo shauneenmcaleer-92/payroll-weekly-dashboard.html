@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Payroll Weekly Dashboard — Snapshot</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" integrity="sha384-jZvDSsmGB9oGGT/4l9bHXGoAv1OxvG/cFmSo0dZaSqmBgvQTKDBFAMftlXTmMbNW" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f5f6f8;
+    color: #17181a;
+    padding: 20px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  h1 { font-size: 18px; margin: 0 0 2px 0; font-weight: 700; }
+  .sub { color: #6b7280; font-size: 12.5px; margin: 0; }
+  .live-pill {
+    font-size: 11px;
+    font-weight: 600;
+    color: #57606a;
+    background: #eef0f2;
+    border: 1px solid #dde1e5;
+    border-radius: 999px;
+    padding: 3px 10px;
+    white-space: nowrap;
+  }
+  .security-note {
+    font-size: 11.5px;
+    color: #6b7280;
+    margin: 0 0 14px 0;
+  }
+  .matrix {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat {
+    background: #fff;
+    border: 1px solid #e6e8eb;
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    position: relative;
+  }
+  .stat:hover { border-color: #c9ccd1; }
+  .stat.active { border-color: #17181a; box-shadow: 0 0 0 1px #17181a inset; }
+  .stat .n { font-size: 24px; font-weight: 700; line-height: 1; }
+  .stat .l { font-size: 11px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; margin-top: 5px; color: #6b7280; }
+  .stat .sub-breakdown { font-size: 11px; color: #9aa0a8; margin-top: 4px; font-weight: 500; text-transform: none; letter-spacing: normal; }
+  .stat.new .n { color: #2563eb; }
+  .stat.done .n { color: #16a34a; }
+  .stat.inflight .n { color: #7c3aed; }
+  .stat.notstarted .n { color: #57606a; }
+
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .panel {
+    background: #fff;
+    border: 1px solid #e6e8eb;
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .panel h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #6b7280;
+    margin: 0 0 10px 0;
+    font-weight: 700;
+  }
+
+  .attn-group { margin-bottom: 10px; }
+  .attn-group:last-child { margin-bottom: 0; }
+  .attn-label { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+  .attn-label.past { color: #b91c1c; }
+  .attn-label.week { color: #92400e; }
+  .attn-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    font-size: 12.5px; padding: 5px 0; border-top: 1px solid #f0f1f3;
+  }
+  .attn-item:first-of-type { border-top: none; }
+  .attn-item a {
+    color: #2563eb; text-decoration: none; font-weight: 600;
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .attn-item .meta { color: #9aa0a8; white-space: nowrap; flex-shrink: 0; font-size: 11.5px; }
+  .attn-empty { font-size: 12.5px; color: #9aa0a8; padding: 4px 0; }
+
+  .weekbars { display: flex; align-items: flex-end; gap: 8px; height: 90px; margin-bottom: 6px; }
+  .weekbar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .weekbar { width: 100%; max-width: 32px; background: #ddd6fe; border-radius: 4px 4px 0 0; }
+  .weekbar.current { background: #7c3aed; }
+  .weekbar-n { font-size: 11px; font-weight: 700; margin-bottom: 3px; color: #374151; }
+  .weekbar-label { font-size: 10px; color: #9aa0a8; margin-top: 5px; }
+
+  .longest-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    font-size: 12.5px; padding: 6px 0; border-top: 1px solid #f0f1f3;
+  }
+  .longest-item:first-of-type { border-top: none; }
+  .longest-item a { color: #2563eb; text-decoration: none; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .age-pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+  .age-pill.hot { background: #fee2e2; color: #b91c1c; }
+  .age-pill.warm { background: #fef3c7; color: #92400e; }
+  .age-pill.cool { background: #f2f2f3; color: #57606a; }
+
+  .table-panel {
+    background: #fff;
+    border: 1px solid #e6e8eb;
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
+  }
+  .panel-head h2 { font-size: 13px; margin: 0; text-transform: none; color: #17181a; }
+  .clear-filter { font-size: 12px; color: #2563eb; background: none; border: none; cursor: pointer; padding: 0; }
+  .clear-filter:hover { text-decoration: underline; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge.new { background:#dbeafe; color:#1d4ed8; }
+  .badge.done { background:#dcfce7; color:#15803d; }
+  .badge.inflight { background:#f2e9ff; color:#6d28d9; }
+  .badge.notstarted { background:#e5e7eb; color:#374151; }
+  a.key-link { color:#2563eb; text-decoration:none; font-weight:600; }
+  a.key-link:hover { text-decoration:underline; }
+
+  footer { margin-top: 12px; font-size: 11px; color: #9aa0a8; text-align: right; }
+  .gridjs-search-input { border-radius: 6px !important; }
+  .gridjs-th { background:#fafafa !important; font-size:12px !important; }
+  .gridjs-td { font-size: 13px !important; vertical-align: top !important; }
+
+  @media (max-width: 900px) {
+    .matrix { grid-template-columns: repeat(2, 1fr); }
+    .panels { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Payroll Priorities — Weekly Dashboard</h1>
+      <p class="sub" id="weekLabel">People Tech (PT) board · Payroll stakeholder tickets</p>
+    </div>
+    <span class="live-pill">Snapshot — refreshed weekly</span>
+  </header>
+  <p class="security-note">🔒 Generated from Jira using the owner's own login — reflects only tickets that account has access to. Numbers are frozen as of the refresh time below, not live.</p>
+
+  <div id="content">
+    <div class="matrix">
+      <div class="stat new" data-bucket="new">
+        <div class="n" id="count-new">–</div>
+        <div class="l">New tickets opened in last 7 days</div>
+      </div>
+      <div class="stat done" data-bucket="done">
+        <div class="n" id="count-done">–</div>
+        <div class="l">Completed in last 7 days</div>
+      </div>
+      <div class="stat inflight" data-bucket="inflight">
+        <div class="n" id="count-inflight">–</div>
+        <div class="l">In progress / testing</div>
+        <div class="sub-breakdown" id="inflight-breakdown"></div>
+      </div>
+      <div class="stat notstarted" data-bucket="notstarted">
+        <div class="n" id="count-notstarted">–</div>
+        <div class="l">Not yet started</div>
+      </div>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <h2>Needs attention</h2>
+        <div class="attn-group">
+          <div class="attn-label past">Past due</div>
+          <div id="pastDueList"></div>
+        </div>
+        <div class="attn-group">
+          <div class="attn-label week">Due this week</div>
+          <div id="dueSoonList"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Weekly completions</h2>
+        <div class="weekbars" id="weekBars"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Longest open (in progress)</h2>
+        <div id="longestOpenList"></div>
+      </div>
+    </div>
+
+    <div class="table-panel">
+      <div class="panel-head">
+        <h2 id="tableTitle">All Payroll tickets this week</h2>
+        <button class="clear-filter" id="clearFilter" style="display:none;">Clear filter ×</button>
+      </div>
+      <div id="table"></div>
+    </div>
+
+    <footer id="lastUpdated"></footer>
+  </div>
+</div>
+
+<script>
+// ---- Static snapshot data (baked in at generation time — no live Jira calls) ----
+const SNAPSHOT = {"generatedAt": "2026-07-07T19:31:23.811738+00:00", "counts": {"new": 3, "done": 8, "inflight": 24, "notstarted": 15, "inflightCore": 19, "testing": 5}, "pastDue": [{"key": "PT-2406", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2406", "summary": "INT011 HMRC DPS Incoming Notifications Inbound  is failing", "duedate": "2026-03-20", "assignee": "Ram Gupta"}, {"key": "PT-2273", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2273", "summary": "Workday Payroll Agent Implementation", "duedate": "2026-06-30", "assignee": "Oceans Billin"}, {"key": "PT-2439", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2439", "summary": " INT082 Ireland Cloudpay updates for Benifex payroll automation", "duedate": "2026-07-01", "assignee": "Ram Gupta"}, {"key": "PT-2586", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2586", "summary": "DE - LPI Data - Children information - Multiple entry Request", "duedate": "2026-07-01", "assignee": "Melissa Brewer"}], "dueSoon": [{"key": "PT-2754", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2754", "summary": "Singapore - CloudPay PECI Functional Support", "duedate": "2026-07-13", "assignee": "Oceans Billin"}], "weeklyCompletions": [1, 1, 2, 3, 8], "longestOpen": [{"key": "PT-1184", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1184", "summary": "External pay code / GL mapping cleanup", "days": 353}, {"key": "PT-1665", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1665", "summary": "LPI reporting", "days": 249}, {"key": "PT-1688", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1688", "summary": "EA Payroll Agent", "days": 244}, {"key": "PT-1844", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1844", "summary": "2026 On-Call Payments", "days": 224}, {"key": "PT-2273", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2273", "summary": "Workday Payroll Agent Implementation", "days": 150}], "rows": [{"bucket": "new", "key": "PT-2980", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2980", "summary": "Payroll Ticket Dashboard - AI", "type": "Story", "statusName": "In Progress", "assignee": "Oceans Billin", "priority": "High", "duedate": "2026-07-31", "created": "2026-07-01T10:48:42.166-0700", "resolved": null}, {"bucket": "new", "key": "PT-2972", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2972", "summary": "Earnings updated in Equifax as of 6.11.26", "type": "Story", "statusName": "In Progress", "assignee": "Oceans Billin", "priority": "Medium", "duedate": "2026-07-31", "created": "2026-06-30T13:00:03.045-0700", "resolved": null}, {"bucket": "new", "key": "PT-2971", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2971", "summary": "KLV - Audit Pay Calc Comparison to Prior Period for Salary | Issue", "type": "Story", "statusName": "Done", "assignee": "Oceans Billin", "priority": "Highest", "duedate": null, "created": "2026-06-30T12:38:11.569-0700", "resolved": "2026-07-01T06:39:36.015-0700"}, {"bucket": "done", "key": "PT-2768", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2768", "summary": "New Hire Checkpoint updated to include SGP", "type": "Sub-Task", "statusName": "Done", "assignee": "Oceans Billin", "priority": "Highest", "duedate": "2026-07-10", "created": "2026-05-13T07:04:43.755-0700", "resolved": "2026-07-07T10:54:53.290-0700"}, {"bucket": "done", "key": "PT-2903", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2903", "summary": "Request for new Payroll Members - Gillian Lundberg and Rebecca Byrne: [People Tech] Elevated Workday Access Request", "type": "Story", "statusName": "Done", "assignee": "Dan South", "priority": "Medium", "duedate": null, "created": "2026-06-16T12:23:16.144-0700", "resolved": "2026-07-06T06:36:52.545-0700"}, {"bucket": "done", "key": "PT-2756", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2756", "summary": "WD/CP Pay Code Alignment for SGP", "type": "Sub-Task", "statusName": "Done", "assignee": "Oceans Billin", "priority": "Highest", "duedate": "2026-07-06", "created": "2026-05-12T08:44:21.253-0700", "resolved": "2026-07-02T07:37:38.375-0700"}, {"bucket": "done", "key": "PT-2389", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2389", "summary": "Singapore Absence & Time Off Mapping", "type": "Story", "statusName": "Done", "assignee": "Oceans Billin", "priority": "Medium", "duedate": "2026-07-06", "created": "2026-02-26T13:30:55.857-0800", "resolved": "2026-07-02T06:49:43.753-0700"}, {"bucket": "done", "key": "PT-2108", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2108", "summary": "2026 - Quarterly Equity Vest - Feb", "type": "Epic", "statusName": "Done", "assignee": "Oceans Billin", "priority": "Highest", "duedate": null, "created": "2026-01-12T07:06:08.016-0800", "resolved": "2026-07-01T08:57:36.689-0700"}, {"bucket": "done", "key": "PT-2971", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2971", "summary": "KLV - Audit Pay Calc Comparison to Prior Period for Salary | Issue", "type": "Story", "statusName": "Done", "assignee": "Oceans Billin", "priority": "Highest", "duedate": null, "created": "2026-06-30T12:38:11.569-0700", "resolved": "2026-07-01T06:39:36.015-0700"}, {"bucket": "done", "key": "PT-2671", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2671", "summary": "Change In Reporting Requirements for Wages (Illinois)", "type": "Story", "statusName": "Done", "assignee": "Oceans Billin", "priority": "Medium", "duedate": "2026-07-02", "created": "2026-04-21T07:34:38.154-0700", "resolved": "2026-06-30T13:20:31.694-0700"}, {"bucket": "done", "key": "PT-2933", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2933", "summary": "Pause ESPP Deductions Jul 1-Aug 31", "type": "Story", "statusName": "Done", "assignee": "Oceans Billin", "priority": "Highest", "duedate": "2026-06-26", "created": "2026-06-22T06:09:25.411-0700", "resolved": "2026-06-30T13:17:44.807-0700"}, {"bucket": "inflight", "key": "PT-1030", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1030", "summary": "Workday Payroll Accrual Report Request for US Biweekly Payroll", "type": "Story", "statusName": "In Testing", "assignee": "Melissa Brewer", "priority": "Medium", "duedate": null, "created": "2025-06-13T06:33:11.150-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-1184", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1184", "summary": "External pay code / GL mapping cleanup", "type": "Story", "statusName": "On Hold", "assignee": "Oceans Billin", "priority": "Medium", "duedate": null, "created": "2025-07-18T12:37:57.806-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-1665", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1665", "summary": "LPI reporting", "type": "Story", "statusName": "In Progress", "assignee": "Melissa Brewer", "priority": "Medium", "duedate": null, "created": "2025-10-31T10:35:52.105-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-1688", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1688", "summary": "EA Payroll Agent", "type": "Story", "statusName": "On Hold", "assignee": "Oceans Billin", "priority": "High", "duedate": "2026-10-30", "created": "2025-11-04T12:56:42.158-0800", "resolved": null}, {"bucket": "inflight", "key": "PT-1844", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1844", "summary": "2026 On-Call Payments", "type": "Epic", "statusName": "In Progress", "assignee": "Ashley Kronstat", "priority": "Medium", "duedate": null, "created": "2025-11-24T13:10:18.433-0800", "resolved": null}, {"bucket": "inflight", "key": "PT-2273", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2273", "summary": "Workday Payroll Agent Implementation", "type": "Epic", "statusName": "In Progress", "assignee": "Oceans Billin", "priority": "Medium", "duedate": "2026-06-30", "created": "2026-02-06T13:45:44.188-0800", "resolved": null}, {"bucket": "inflight", "key": "PT-2275", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2275", "summary": "EA Payroll Agent - GPC / GPH", "type": "Story", "statusName": "On Hold", "assignee": "Oceans Billin", "priority": "High", "duedate": "2026-07-31", "created": "2026-02-06T13:47:14.623-0800", "resolved": null}, {"bucket": "inflight", "key": "PT-2406", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2406", "summary": "INT011 HMRC DPS Incoming Notifications Inbound  is failing", "type": "Story", "statusName": "Blocked (In Progress)", "assignee": "Ram Gupta", "priority": "High", "duedate": "2026-03-20", "created": "2026-03-02T13:28:18.199-0800", "resolved": null}, {"bucket": "inflight", "key": "PT-2439", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2439", "summary": " INT082 Ireland Cloudpay updates for Benifex payroll automation", "type": "Story", "statusName": "In Testing", "assignee": "Ram Gupta", "priority": "Medium", "duedate": "2026-07-01", "created": "2026-03-06T11:18:45.020-0800", "resolved": null}, {"bucket": "inflight", "key": "PT-2580", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2580", "summary": "2026 - Quarterly Equity Vest - May", "type": "Epic", "statusName": "In Progress", "assignee": "Oceans Billin", "priority": "Highest", "duedate": null, "created": "2026-04-02T06:11:40.843-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2586", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2586", "summary": "DE - LPI Data - Children information - Multiple entry Request", "type": "Story", "statusName": "In Progress", "assignee": "Melissa Brewer", "priority": "Medium", "duedate": "2026-07-01", "created": "2026-04-02T12:56:47.198-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2689", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2689", "summary": "Singapore - Cloudpay PECI Automation - 2026", "type": "Epic", "statusName": "In Progress", "assignee": "Ashley Kronstat", "priority": "Medium", "duedate": "2026-08-01", "created": "2026-04-24T13:11:57.755-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2717", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2717", "summary": "Paycode Request - Service Australia Payments", "type": "Story", "statusName": "On Hold", "assignee": "Oceans Billin", "priority": "Medium", "duedate": "2026-07-17", "created": "2026-04-30T13:16:34.038-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2734", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2734", "summary": "Payroll - Automate Scheduled workday reports", "type": "Story", "statusName": "In Testing", "assignee": "Dan South", "priority": "Medium", "duedate": null, "created": "2026-05-06T06:49:24.085-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2754", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2754", "summary": "Singapore - CloudPay PECI Functional Support", "type": "Story", "statusName": "In Progress", "assignee": "Oceans Billin", "priority": "Highest", "duedate": "2026-07-13", "created": "2026-05-12T08:30:48.407-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2765", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2765", "summary": "Singapore  - Workday to CloudPay PECI Integration", "type": "Story", "statusName": "Approved", "assignee": "Ram Gupta", "priority": "Medium", "duedate": "2026-07-24", "created": "2026-05-12T14:45:30.184-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2766", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2766", "summary": "Singapore  - CloudPay to Workday ExPR Integration", "type": "Story", "statusName": "Approved", "assignee": "Ram Gupta", "priority": "Medium", "duedate": "2026-07-31", "created": "2026-05-12T14:45:32.961-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2810", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2810", "summary": "UK SSP Payroll Overpayments recognized in new calendar year April 2026", "type": "Story", "statusName": "In Progress", "assignee": "Melissa Brewer", "priority": "High", "duedate": null, "created": "2026-05-22T06:17:18.259-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2827", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2827", "summary": "2026 Offering 2 (June 2026) ESPP Enrollment & Fed Tax Election Activities", "type": "Epic", "statusName": "In Progress", "assignee": "Oceans Billin", "priority": "Highest", "duedate": null, "created": "2026-05-27T12:50:55.797-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2894", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2894", "summary": "Create New Paycode \u2013 Canada Optional Life Insurance", "type": "Story", "statusName": "In Testing", "assignee": "Oceans Billin", "priority": "Medium", "duedate": "2026-07-17", "created": "2026-06-15T06:19:41.485-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2961", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2961", "summary": "Test OB", "type": "Story", "statusName": "Pending Approval", "assignee": "Oceans Billin", "priority": "Highest", "duedate": null, "created": "2026-06-29T09:20:53.594-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2967", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2967", "summary": "KLV - Benefit Deductions on Net Pay | Issue", "type": "Story", "statusName": "In Testing", "assignee": "Oceans Billin", "priority": "High", "duedate": "2026-07-17", "created": "2026-06-30T07:31:47.915-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2972", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2972", "summary": "Earnings updated in Equifax as of 6.11.26", "type": "Story", "statusName": "In Progress", "assignee": "Oceans Billin", "priority": "Medium", "duedate": "2026-07-31", "created": "2026-06-30T13:00:03.045-0700", "resolved": null}, {"bucket": "inflight", "key": "PT-2980", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2980", "summary": "Payroll Ticket Dashboard - AI", "type": "Story", "statusName": "In Progress", "assignee": "Oceans Billin", "priority": "High", "duedate": "2026-07-31", "created": "2026-07-01T10:48:42.166-0700", "resolved": null}, {"bucket": "notstarted", "key": "PT-287", "url": "https://gts-klaviyo.atlassian.net/browse/PT-287", "summary": "Workday 2024 Release 1 - Statutory Paternity Pay", "type": "Story", "statusName": "Backlog", "assignee": "Melissa Brewer", "priority": "Medium", "duedate": null, "created": "2025-01-17T09:32:44.219-0800", "resolved": null}, {"bucket": "notstarted", "key": "PT-360", "url": "https://gts-klaviyo.atlassian.net/browse/PT-360", "summary": "Request for Support in Generating Report for ONS Survey UK", "type": "Story", "statusName": "Backlog", "assignee": "Melissa Brewer", "priority": "High", "duedate": null, "created": "2025-01-31T10:51:41.506-0800", "resolved": null}, {"bucket": "notstarted", "key": "PT-425", "url": "https://gts-klaviyo.atlassian.net/browse/PT-425", "summary": "Workday 2024 Release: Workday's New UK Payslip ", "type": "Story", "statusName": "Backlog", "assignee": "Oceans Billin", "priority": "Lowest", "duedate": null, "created": "2025-02-07T12:40:55.550-0800", "resolved": null}, {"bucket": "notstarted", "key": "PT-429", "url": "https://gts-klaviyo.atlassian.net/browse/PT-429", "summary": "Review benefit earnings/deductions for proration or split pay checks", "type": "Story", "statusName": "Backlog", "assignee": "Unassigned", "priority": "Medium", "duedate": null, "created": "2025-02-10T12:07:31.445-0800", "resolved": null}, {"bucket": "notstarted", "key": "PT-431", "url": "https://gts-klaviyo.atlassian.net/browse/PT-431", "summary": "New Pay Code - Global Leave of Absence OTE Top Up Pay", "type": "Story", "statusName": "Backlog", "assignee": "Unassigned", "priority": "Medium", "duedate": null, "created": "2025-02-10T12:25:31.579-0800", "resolved": null}, {"bucket": "notstarted", "key": "PT-474", "url": "https://gts-klaviyo.atlassian.net/browse/PT-474", "summary": "401k Contribution Rounding", "type": "Story", "statusName": "Backlog", "assignee": "Unassigned", "priority": "Lowest", "duedate": null, "created": "2025-02-14T09:29:10.954-0800", "resolved": null}, {"bucket": "notstarted", "key": "PT-738", "url": "https://gts-klaviyo.atlassian.net/browse/PT-738", "summary": "Enable work shift for all US employees", "type": "Story", "statusName": "Backlog", "assignee": "Unassigned", "priority": "Medium", "duedate": null, "created": "2025-04-09T08:29:20.028-0700", "resolved": null}, {"bucket": "notstarted", "key": "PT-1097", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1097", "summary": "Review GBR Payout Earning", "type": "Story", "statusName": "Backlog", "assignee": "Oceans Billin", "priority": "Medium", "duedate": null, "created": "2025-06-30T12:25:02.249-0700", "resolved": null}, {"bucket": "notstarted", "key": "PT-1365", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1365", "summary": "WD Innovation Services: Time Tracking Anomalies AI", "type": "Story", "statusName": "Backlog", "assignee": "Ryan Kevorkian", "priority": "High", "duedate": null, "created": "2025-09-04T13:51:41.673-0700", "resolved": null}, {"bucket": "notstarted", "key": "PT-1425", "url": "https://gts-klaviyo.atlassian.net/browse/PT-1425", "summary": "Integration - 2025 R2 - Correct Action for Edit Government IDs, Legal Name Change, and Personal Information Change Business Processes  - PECI Integration Test", "type": "Story", "statusName": "To Do", "assignee": "Ram Gupta", "priority": "Medium", "duedate": null, "created": "2025-09-22T12:46:43.166-0700", "resolved": null}, {"bucket": "notstarted", "key": "PT-2328", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2328", "summary": "Request for Claudia Brophy : Workday Report & Data Request Form", "type": "Story", "statusName": "Backlog", "assignee": "Unassigned", "priority": "Medium", "duedate": null, "created": "2026-02-17T09:26:02.587-0800", "resolved": null}, {"bucket": "notstarted", "key": "PT-2482", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2482", "summary": "Withholding Orders for Employee Self Service - R12026 WD Release", "type": "Story", "statusName": "Backlog", "assignee": "Oceans Billin", "priority": "Medium", "duedate": null, "created": "2026-03-17T09:29:00.346-0700", "resolved": null}, {"bucket": "notstarted", "key": "PT-2782", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2782", "summary": "Add Eligibility to HSA Deduction", "type": "Story", "statusName": "Backlog", "assignee": "Oceans Billin", "priority": "Medium", "duedate": null, "created": "2026-05-15T06:32:29.250-0700", "resolved": null}, {"bucket": "notstarted", "key": "PT-2896", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2896", "summary": "Retro configuration | Tax authorities", "type": "Story", "statusName": "To Do", "assignee": "Oceans Billin", "priority": "Medium", "duedate": "2026-07-31", "created": "2026-06-15T12:24:55.384-0700", "resolved": null}, {"bucket": "notstarted", "key": "PT-2898", "url": "https://gts-klaviyo.atlassian.net/browse/PT-2898", "summary": "Fidelity \u2192 Workday RSU integration for Taxes 5\u20137", "type": "Story", "statusName": "To Do", "assignee": "Ram Gupta", "priority": "Medium", "duedate": null, "created": "2026-06-16T06:21:20.851-0700", "resolved": null}]};
+
+function fmtDate(d) {
+  if (!d) return "—";
+  try { return new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+  catch (e) { return d; }
+}
+function agePillClass(days) {
+  if (days >= 90) return "hot";
+  if (days >= 30) return "warm";
+  return "cool";
+}
+function bucketBadgeHtml(bucket) {
+  const labels = { new: "New", done: "Done", inflight: "In progress / testing", notstarted: "Not started" };
+  return `<span class="badge ${bucket}">${labels[bucket]}</span>`;
+}
+
+let grid = null;
+let activeBucket = null;
+const allRows = SNAPSHOT.rows;
+
+function buildGrid(rows) {
+  const data = rows.map(r => [
+    r.bucket, r.key, r.summary, r.type, r.statusName, r.assignee,
+    r.priority || "—",
+    r.duedate ? fmtDate(r.duedate) : "—",
+    r.bucket === "done" ? fmtDate(r.resolved) : fmtDate(r.created)
+  ]);
+  const columns = [
+    { name: "Bucket", formatter: (cell) => gridjs.html(bucketBadgeHtml(cell)) },
+    {
+      name: "Key",
+      formatter: (cell) => {
+        const url = rows.find(r => r.key === cell)?.url || "#";
+        return gridjs.html(`<a class="key-link" href="${url}" target="_blank" rel="noopener">${cell}</a>`);
+      }
+    },
+    { name: "Summary" },
+    { name: "Type" },
+    { name: "Status" },
+    { name: "Assignee" },
+    { name: "Priority" },
+    { name: "Due Date" },
+    { name: activeBucket === "done" ? "Resolved" : "Created" }
+  ];
+  if (grid) {
+    grid.updateConfig({ columns, data }).forceRender();
+  } else {
+    grid = new gridjs.Grid({
+      columns, data, search: true, sort: true,
+      pagination: { limit: 12 },
+      style: { table: { fontSize: "13px" } }
+    }).render(document.getElementById("table"));
+  }
+}
+
+function applyFilter(bucket) {
+  activeBucket = bucket;
+  const clearBtn = document.getElementById("clearFilter");
+  const title = document.getElementById("tableTitle");
+  document.querySelectorAll(".stat").forEach(c => c.classList.remove("active"));
+  if (bucket) {
+    document.querySelector(`.stat[data-bucket="${bucket}"]`).classList.add("active");
+    title.textContent = document.querySelector(`.stat[data-bucket="${bucket}"] .l`).textContent + " — Payroll tickets";
+    clearBtn.style.display = "inline-block";
+    buildGrid(allRows.filter(r => r.bucket === bucket));
+  } else {
+    title.textContent = "All Payroll tickets this week";
+    clearBtn.style.display = "none";
+    buildGrid(allRows);
+  }
+}
+
+function renderAttnList(elId, rows) {
+  const el = document.getElementById(elId);
+  if (!rows.length) { el.innerHTML = '<div class="attn-empty">Nothing here</div>'; return; }
+  el.innerHTML = rows.map(r => `
+    <div class="attn-item">
+      <a href="${r.url}" target="_blank" rel="noopener" title="${r.summary}">${r.key} — ${r.summary}</a>
+      <span class="meta">${fmtDate(r.duedate)} · ${r.assignee}</span>
+    </div>
+  `).join("");
+}
+
+function render() {
+  const generated = new Date(SNAPSHOT.generatedAt);
+  const start = new Date(generated.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const fmt = d => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  document.getElementById("weekLabel").textContent =
+    `People Tech (PT) board · Payroll stakeholder tickets · Week of ${fmt(start)} – ${fmt(generated)}`;
+
+  document.getElementById("count-new").textContent = SNAPSHOT.counts.new;
+  document.getElementById("count-done").textContent = SNAPSHOT.counts.done;
+  document.getElementById("count-inflight").textContent = SNAPSHOT.counts.inflight;
+  document.getElementById("count-notstarted").textContent = SNAPSHOT.counts.notstarted;
+  document.getElementById("inflight-breakdown").textContent =
+    `${SNAPSHOT.counts.inflightCore} in progress · ${SNAPSHOT.counts.testing} testing`;
+
+  renderAttnList("pastDueList", SNAPSHOT.pastDue);
+  renderAttnList("dueSoonList", SNAPSHOT.dueSoon);
+
+  const weekCounts = SNAPSHOT.weeklyCompletions;
+  const maxWeek = Math.max(1, ...weekCounts);
+  const weekBarsEl = document.getElementById("weekBars");
+  weekBarsEl.innerHTML = weekCounts.map((c, i) => {
+    const weeksAgo = 4 - i;
+    const label = fmt(new Date(generated.getTime() - (weeksAgo + 1) * 7 * 86400000));
+    const isCurrent = weeksAgo === 0;
+    const h = Math.max(6, Math.round(c / maxWeek * 100));
+    return `<div class="weekbar-col">
+      <div class="weekbar-n">${c}</div>
+      <div class="weekbar ${isCurrent ? "current" : ""}" style="height:${h}%"></div>
+      <div class="weekbar-label">${label}</div>
+    </div>`;
+  }).join("");
+
+  const longestEl = document.getElementById("longestOpenList");
+  if (!SNAPSHOT.longestOpen.length) {
+    longestEl.innerHTML = '<div class="attn-empty">Nothing in progress</div>';
+  } else {
+    longestEl.innerHTML = SNAPSHOT.longestOpen.map(r => `
+      <div class="longest-item">
+        <a href="${r.url}" target="_blank" rel="noopener" title="${r.summary}">${r.key} — ${r.summary}</a>
+        <span class="age-pill ${agePillClass(r.days)}">${r.days}d</span>
+      </div>
+    `).join("");
+  }
+
+  applyFilter(null);
+  document.getElementById("lastUpdated").textContent = "Snapshot generated " + generated.toLocaleString();
+
+  document.querySelectorAll(".stat").forEach(card => {
+    card.addEventListener("click", () => {
+      const b = card.getAttribute("data-bucket");
+      applyFilter(activeBucket === b ? null : b);
+    });
+  });
+  document.getElementById("clearFilter").addEventListener("click", () => applyFilter(null));
+}
+
+render();
+</script>
+</body>
+</html>
